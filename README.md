@@ -45,15 +45,16 @@ So my initial plan with this was to do the following:
     Puppet 4;
 - there are two extreme options, and various combinations of those two
   in between:
-  - first of all, we can leave everything as-is, and still use Hiera, and still
-    use r10k to manage data and code, respectively;
+  - first of all, we can leave everything as-is in terms of processes, but
+    start using Sat6 Puppet: still use Hiera, and still use r10k to manage data
+    and code, respectively;
     - reports and facts would still need to go into Satellite 6;
     - r10k is currently not supported, but we have some docs to make that work;
     - hiera is undocumented but supported, and we have people using this in
       GPS;
-  - and second, we can push everything into Satellite, use smart parameters,
-    use config groups etc., to make use of everything Satellite 6 offers in
-    this area
+  - and second, we can start using Sat6 Puppet, push everything into Satellite,
+    use smart parameters, use config groups etc., to make use of everything
+    Satellite 6 offers in this area
     - my Mojo doc is probably the basis for this (dedicated Puppet CV)
     - Smart parameters all the way
 - the hybrid way(s) of pulling Puppet into Sat6 would revolve around using
