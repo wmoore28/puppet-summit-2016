@@ -34,7 +34,8 @@ Thougts MB below:
 So my initial plan with this was to do the following:
 
 - have a Puppet 3.x deployment (on RHEL) that manages our infrastructure from
-  there
+  there; I'm a little afraid of including a CentOS -> RHEL migration, we need
+  to discuss that
 - as we (a) started requiring support on our infrastructures management tools,
   and (b) we are implementing Satellite 6 anyway, we want to take our existing
   modules and use them in Satellite 6
