@@ -43,7 +43,7 @@ So my initial plan with this was to do the following:
   Satellite, but that's going to leave us with an unsupported Puppet;
   - the only reason I can think of to do this, is if you _really_ want to use
     Puppet 4;
-- there are two extreme options for this, and various combinations of those two
+- there are two extreme options, and various combinations of those two
   in between:
   - first of all, we can leave everything as-is, and still use Hiera, and still
     use r10k to manage data and code, respectively;
