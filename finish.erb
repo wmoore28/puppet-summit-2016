@@ -1,0 +1,66 @@
+<%#
+kind: finish
+name: Satellite Kickstart default finish w/ Puppet variable
+oses:
+- Red Hat Enterprise Linux 5
+- Red Hat Enterprise Linux 6
+- Red Hat Enterprise Linux 7
+%>
+<% if @host.subnet.respond_to?(:dhcp_boot_mode?) -%>
+<%= snippet 'kickstart_networking_setup' %>
+service network restart
+<% end -%>
+
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  pm_set = @host.puppetmaster.empty? ? false : true
+  puppet_enabled = pm_set || @host.params['force-puppet']
+  salt_enabled = @host.params['salt_master'] ? true : false
+%>
+
+<%= snippet "subscription_manager_registration" %>
+
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+<%= snippet "idm_register" %>
+<% end -%>
+
+# update local time
+echo "updating system time"
+/usr/sbin/ntpdate -sub <%= @host.params['ntp-server'] || '0.fedora.pool.ntp.org' %>
+/usr/sbin/hwclock --systohc
+
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+<%= snippet "idm_register" %>
+<% end -%>
+
+# update all the base packages from the updates repository
+yum -t -y -e 0 update
+
+<% if salt_enabled %>
+yum -t -y -e 0 install salt-minion
+cat > /etc/salt/minion << EOF
+<%= snippet 'saltstack_minion' %>
+EOF
+# Setup salt-minion to run on system reboot
+/sbin/chkconfig --level 345 salt-minion on
+# Running salt-call to trigger key signing
+salt-call --no-color --grains >/dev/null
+<% end -%>
+
+<% if puppet_enabled %>
+yum -t -y -e 0 install puppet
+echo "Configuring puppet"
+cat > /etc/puppet/puppet.conf << EOF
+<%= snippet 'puppet.conf' %>
+EOF
+
+# Setup puppet to run on system reboot
+/sbin/chkconfig --level 345 puppet on
+
+/usr/bin/puppet agent --config /etc/puppet/puppet.conf -o --tags no_such_tag <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
+/sbin/service puppet start
+<% end -%>
+
+exit 0
+

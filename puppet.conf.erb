@@ -1,0 +1,15 @@
+<%#
+kind: snippet
+name: puppet.conf for community Puppet 3.8
+%>
+[main]
+vardir = /var/lib/puppet
+logdir = /var/log/puppet
+rundir = /var/run/puppet
+ssldir = \$vardir/ssl
+
+[agent]
+pluginsync      = true
+environment     = production
+server          = <%= @host.params['puppetmaster38'] %>
+

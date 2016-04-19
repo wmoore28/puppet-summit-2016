@@ -1,0 +1,144 @@
+<%#
+kind: provision
+name: Satellite Kickstart Default w/ Puppet variable
+oses:
+- Red Hat Enterprise Linux 5
+- Red Hat Enterprise Linux 6
+- Red Hat Enterprise Linux 7
+%>
+<%
+  rhel_compatible = @host.operatingsystem.family == 'Redhat' && @host.operatingsystem.name != 'Fedora'
+  os_major = @host.operatingsystem.major.to_i
+  # safemode renderer does not support unary negation
+  pm_set = @host.puppetmaster.empty? ? false : true
+  puppet_enabled = pm_set || @host.params['force-puppet']
+  section_end = (rhel_compatible && os_major <= 5) ? '' : '%end'
+%>
+install
+<%= @mediapath %>
+lang en_US.UTF-8
+selinux --enforcing
+keyboard us
+skipx
+
+<% subnet = @host.subnet -%>
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<% dhcp = subnet.dhcp_boot_mode? && !@static -%>
+<% else -%>
+<% dhcp = !@static -%>
+<% end -%>
+
+network --bootproto <%= dhcp ? 'dhcp' : "static --ip=#{@host.ip} --netmask=#{subnet.mask} --gateway=#{subnet.gateway} --nameserver=#{[subnet.dns_primary, subnet.dns_secondary].select(&:present?).join(',')}" %> --hostname <%= @host %><%= os_major >= 6 ? " --device=#{@host.mac}" : '' -%>
+
+rootpw --iscrypted <%= root_pass %>
+firewall --<%= os_major >= 6 ? 'service=' : '' %>ssh
+authconfig --useshadow --passalgo=sha256 --kickstart
+timezone --utc <%= @host.params['time-zone'] || 'UTC' %>
+
+bootloader --location=mbr --append="nofb quiet splash=quiet" <%= grub_pass %>
+
+<% if os_major == 5 -%>
+key --skip
+<% end -%>
+
+<% if @dynamic -%>
+%include /tmp/diskpart.cfg
+<% else -%>
+<%= @host.diskLayout %>
+<% end -%>
+
+text
+reboot
+
+%packages --ignoremissing
+yum
+dhclient
+ntp
+wget
+@Core
+<%= section_end -%>
+
+<% if @dynamic -%>
+%pre
+<%= @host.diskLayout %>
+<%= section_end -%>
+<% end -%>
+
+%post --nochroot
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+cp -va /etc/resolv.conf /mnt/sysimage/etc/resolv.conf
+/usr/bin/chvt 1
+) 2>&1 | tee /mnt/sysimage/root/install.postnochroot.log
+<%= section_end -%>
+
+
+%post
+logger "Starting anaconda <%= @host %> postinstall"
+exec < /dev/tty3 > /dev/tty3
+#changing to VT 3 so that we can see whats going on....
+/usr/bin/chvt 3
+(
+<% if subnet.respond_to?(:dhcp_boot_mode?) -%>
+<%= snippet 'kickstart_networking_setup' %>
+<% end -%>
+
+#update local time
+echo "updating system time"
+/usr/sbin/ntpdate -sub <%= @host.params['ntp-server'] || '0.fedora.pool.ntp.org' %>
+/usr/sbin/hwclock --systohc
+
+<%= snippet "subscription_manager_registration" %>
+
+<% if @host.respond_to?(:realm) && @host.otp && @host.realm && @host.realm.realm_type == "Red Hat Identity Management" -%>
+<%= snippet "idm_register" %>
+<% end -%>
+
+# update all the base packages from the updates repository
+yum -t -y -e 0 update
+
+<% if puppet_enabled %>
+# and add the puppet package
+<% if @host.params['puppetmaster38'] %>
+echo 'exclude=puppet-agent*' >> /etc/yum.conf
+<% end -%>
+yum -t -y -e 0 install puppet
+
+echo "Configuring puppet"
+<% if @host.params['puppetmaster38'] %>
+echo "- Version: 3.8"
+cat > /etc/puppet/puppet.conf << EOF
+<%= snippet 'puppet.conf community 3.8' %>
+EOF
+<% elsif @host.params['puppetmaster44'] %>
+echo "- Version: 4.4"
+cat > /etc/puppetlabs/puppet/puppet.conf << EOF
+<%= snippet 'puppet.conf community 4.4' %>
+EOF
+<% else %>
+cat > /etc/puppet/puppet.conf << EOF
+echo "- Version: 3.6, Satellite 6 supplied"
+<%= snippet 'puppet.conf' %>
+EOF
+<% end -%>
+
+# Setup puppet to run on system reboot
+/sbin/chkconfig --level 345 puppet on
+/usr/bin/puppet agent --config /etc/puppet/puppet.conf -o --tags no_such_tag <%= @host.puppetmaster.blank? ? '' : "--server #{@host.puppetmaster}" %> --no-daemonize
+<% end -%>
+
+sync
+
+<% if @provisioning_type == nil || @provisioning_type == 'host' -%>
+# Inform the build system that we are done.
+echo "Informing Satellite that we are built"
+wget -q -O /dev/null --no-check-certificate <%= foreman_url %>
+<% end -%>
+) 2>&1 | tee /root/install.post.log
+exit 0
+
+<%= section_end -%>
+
+
