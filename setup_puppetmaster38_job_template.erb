@@ -1,3 +1,11 @@
+<%#
+name: Install and configure community Puppet 3.8 master to a machine
+job_category: Miscellaneous
+snippet: false
+provider_type: SSH
+kind: job_template
+%>
+
 echo "=> Checking for certificate bundle from Satellite..."
 myfile="/root/$(hostname -f).tar"
 if ! [ -f ${myfile} ]; then

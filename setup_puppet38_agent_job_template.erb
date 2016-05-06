@@ -1,3 +1,17 @@
+<%#
+name: Install community Puppet 3.8 to a machine
+job_category: Miscellaneous
+snippet: false
+template_inputs:
+- name: puppet master
+  required: true
+  input_type: user
+  description: The FQDN of the Puppet master this machine needs to connect to.
+  advanced: false
+provider_type: SSH
+kind: job_template
+%>
+
 master="<%= input("puppet master") %>"
 
 echo "=> Installing Puppet Agent 3.8..."
