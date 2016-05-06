@@ -1,3 +1,33 @@
+<%#
+name: Switch Community Puppet to Satellite 6 Puppet
+job_category: Miscellaneous
+snippet: false
+template_inputs:
+- name: disablerepos
+  required: true
+  input_type: user
+  description: Comma separated list of repositories that need to be disabled. This
+    usually means the repositories Puppet was installed from. Full repository names
+    are required as you would pass them to subscription-manager repos --disable ${repo}.
+  advanced: false
+- name: sattoolsrepo
+  required: true
+  input_type: user
+  description: Repository containing the Satellite 6 Tools. This repository will be
+    enabled during the script and needs to be available in the systems current content
+    view.
+  advanced: false
+- name: backupfile
+  required: false
+  input_type: user
+  description: "A full path to a file to backup the current Puppet configuration to.
+    Defaults to /root/puppet_cfg_backup_$(date +%s).tar.gz.\r\n\r\nPackages are not
+    backed up."
+  advanced: true
+provider_type: SSH
+kind: job_template
+%>
+
 # Switch from Puppet Community 3.8 to the version that is supplied by Red Hat
 # Satellite 6 in the Satellite Tools repo.
 # 
