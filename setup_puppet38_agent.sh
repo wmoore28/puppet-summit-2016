@@ -6,7 +6,7 @@ echo "=> Installing Puppet Agent 3.8..."
 yum -q -y install puppet
 
 echo
-echo "=> Configuraing Puppet to connect to master..."
+echo "=> Configuring Puppet to connect to master..."
 cat > /etc/puppet/puppet.conf << EOF
 [main]
 vardir = /var/lib/puppet
