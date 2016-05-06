@@ -1,0 +1,109 @@
+echo "=> Checking for certificate bundle from Satellite..."
+myfile="/root/$(hostname -f).tar"
+if ! [ -f ${myfile} ]; then
+  echo "ERROR: You haven't yet created and copied over the certificate bundle"
+  echo "       from your Satellite 6 server. Please run the following command"
+  echo "       on your Satellite 6 server and copy the resulting tarball to"
+  echo "       this host as /root/$(hostname -f).tar:"
+  echo
+  echo "# capsule-certs-generate --capsule-fqdn $(hostname -f) --certs-tar ~/$(hostname -f).tar"
+  echo
+  exit 1
+fi
+
+rpm -q wget > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "=> ERROR: wget is not installed. I can fix that :)"
+  yum -y -q install wget
+fi
+
+echo "=> Installing software..."
+yum -y -q install puppet-server
+
+ech
+echo "=> Opening up firewall for Puppet protocol..."
+firewall-cmd --add-port=8140/tcp
+firewall-cmd --add-port=8140/tcp --permanent
+
+echo
+echo "=> Starting and enabling puppetmaster service..."
+systemctl enable puppetmaster
+systemctl start puppetmaster
+
+satserver="$(awk ' /^hostname/ { print $3} ' /etc/rhsm/rhsm.conf)"
+if [ -z "${satserver}" ]; then
+    echo "=> ERROR: Cannot determine Satellite server from /etc/rhsm/rhsm.conf."
+    echo "          Your Puppetmaster must be registered to Satellite 6 as a"
+    echo "          content host before your start this process."
+    exit 1
+fi
+
+echo
+echo "=> Extracting the Puppet certificate from the certificate bundle..."
+tar xf ${myfile}
+cd /root/ssl-build
+rpm2cpio katello-default-ca-1.0-1.noarch.rpm | cpio -idmv
+cd /root/ssl-build/$(hostname -f)
+rpm2cpio $(hostname -f)-puppet-client-1.0-1.noarch.rpm | cpio -idmv
+
+echo
+echo "=> Installing the certificates in the right locations..."
+mkdir -p /etc/puppet/foreman
+cp etc/pki/katello-certs-tools/certs/$(hostname -f)-puppet-client.crt /etc/puppet/foreman
+cp etc/pki/katello-certs-tools/private/$(hostname -f)-puppet-client.key /etc/puppet/foreman
+cp ../etc/pki/katello-certs-tools/certs/katello-default-ca.crt /etc/puppet/foreman
+chmod 640 /etc/puppet/foreman/*
+chown root:puppet /etc/puppet/foreman/*
+
+echo
+echo "=> Downloading Foreman report processor..."
+wget -q https://raw.githubusercontent.com/theforeman/puppet-foreman/e14c941a2d543f7ba4144ecda5bb6aec4335bb6d/files/foreman-report_v2.rb -O /usr/share/ruby/vendor_ruby/puppet/reports/foreman.rb
+if [ $? -ne 0 ]; then
+  echo "ERROR: Downloading the report processor failed."
+  echo "       Does this server have an internet connection?"
+  echo "       If not, please download the file mentioned in this script and"
+  echo "       manually place in /usr/share/ruby/vendor_ruby/puppet/reports/foreman.rb"
+  echo
+  exit 1
+fi
+
+echo
+echo "=> Configuring Puppet master to report to Satellite 6..."
+cat > /etc/puppet/foreman.yaml << EOF
+---
+:url: "https://${satserver}"
+:ssl_ca: "/etc/puppet/foreman/katello-default-ca.crt"
+:ssl_cert: "/etc/puppet/foreman/$(hostname -f)-puppet-client.crt"
+:ssl_key: "/etc/puppet/foreman/$(hostname -f)-puppet-client.key"
+
+:puppetdir: "/var/lib/puppet"
+:puppetuser: "puppet"
+:facts: true
+:timeout: 10
+:threads: null
+EOF
+
+if ( grep -q reports /etc/puppet/puppet.conf ); then
+  sed -i 's/reports.*/reports = log, foreman' /etc/puppet/puppet.conf
+else
+  sed -i '/\[main\]/a     reports = log, foreman' /etc/puppet/puppet.conf
+fi
+
+if ! ( grep -q master /etc/puppet/puppet.conf ); then
+  cat >> /etc/puppet/puppet.conf << EOF
+[master]
+  environmentpath = /etc/puppet/environments
+  basemodulepath = /etc/puppet/environments/common:/etc/puppet/modules:/usr/share/puppet/modules
+EOF
+fi
+
+echo
+echo "=> Restarting Puppet master process..."
+systemctl restart puppetmaster
+
+echo
+echo "=> FINAL STEP:"
+echo "   Log into your Satellite server and add $(hostname -f) to the list of "
+echo "   'Trusted puppetmaster hosts' under Settings -> Auth."
+echo "   This setting is an array, so keep the [] in tact."
+echo
