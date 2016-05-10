@@ -1,0 +1,10 @@
+---
+:backends:
+- yaml
+:hierarchy:
+- "hostname/%{::fqdn}"
+- "environment/%{::kt_org}/%{::kt_env}"
+- "hostgroup/%{::kt_org}/%{::hostgroup}"
+- common
+:yaml:
+:datadir: "/etc/puppet/r10k/environments/%{hostgroup}"
