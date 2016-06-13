@@ -1,81 +1,44 @@
 # puppet-summit-2016
 
-Starting a repo to keep track of the notes and the work for Summit 2016
-presentation:
+This repo contains some examples which were used to put together the presentation. They are provided here as in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-**Migrating an existing Puppet deployment into Satellite 6**
+There are a number of different objects which we will describe and outline how to use these.
 
-I am going to start setting up some systems to play around with this, initial
-thoughts are that we are going to use Open Puppet for this demonstration,
-version 3.8 (not 4) and we can migrate from a CentOS based deployment to a RHEL
-based deployment.
+## Foreman Templates for use in creating a puppet 3.8 install from Satellite.
 
-We should of course see if we can get containers into this maybe we could also
-pull in a RHSCL database as part of the demo below - initial thought would be
-to try and also show migration of a supported product.
+To test this scenario, we needed to first build a Satellite 3.8 server. The easiest way to do this was by using Satellite iteself. There are three templates which are availble which are:
 
-Thinking we could setup a puppet master, with Hiera and Puppet DB - this could
-use the wildfly puppet forge module:
+| File            |      purpose                                                                                                |
+|-----------------|:-----------------------------------------------------------------------------------------------------------:|
+| finish.erb      |  Is this just the defaily finish?                                                                           |
+| kickstart.erb   | Cloned from the default Satellite kickstart added override to inject the puppet.conf file                   |
+| puppet.conf.erb | The puppet.conf file that will be injected when hostname is puppetmaster38 as we set in the kickstart       |
 
-https://forge.puppetlabs.com/biemond/wildfly
+The next steps are to configure the community puppet master server which we have added some scripts to make this easier. These are run one after the other:
 
-Then we can migrate this to a Satellite 6 system which has a RHEL SOE and then
-has a JBoss EAP deployment.
+| File            |      purpose                                                                                                |
+|-----------------|:-----------------------------------------------------------------------------------------------------------:|
+| setup_puppetmaster38_step1.sh |  This  adds software, opens firewalls and contains instructions to generate capsule cert      |
+| setup_puppetmaster38_step2.sh | This extracts the certificate, copies them and downlaods the foreman report processor         |
 
-Suggest we build this in the demolab so that we can both work on this at the
-same time.
+Note that these two scrips have also been combined into a single Remote Execution Job Template which can be used with the new Satellite 6.2 release. This is the file **setup_puppetmaster38_job_template.erb** 
 
-Push all stuff up to this Git Repo.
+## Installing puppet agent onto hosts.
 
+Note that for Satellite 6, we will install the puppet agent from the satellite tools repo as per the Satellite user guide. We also created a simple script **setup_puppet38_agent.sh** and a remote execution job **setup_puppet38_agent_job_template.erb** to automate this for our test environment.
 
+## Switching puppet agent on a host to point to Satellite 6.
 
-Thougts MB below: 
+The final two scripts here are for switching the puppet agent on a host to point to a Satellite 6 server. There are a number of steps that the script will perform which, whilst not exhaustive, seemed appropriate for our migrations:
 
-So my initial plan with this was to do the following:
+1 - Backup the existing installation
+2 - Remove the existing installation
+3 - Disable the Puppet Community repository
+4 - Enable, if required, the Satellite Tools repository
+5 - Install new Puppet software
+6 - Configure the new Puppet software
+7 - Run once to request certificate
 
-- have a Puppet 3.x deployment (on RHEL) that manages our infrastructure from
-  there; I'm a little afraid of including a CentOS -> RHEL migration, we need
-  to discuss that
-- as we (a) started requiring support on our infrastructures management tools,
-  and (b) we are implementing Satellite 6 anyway, we want to take our existing
-  modules and use them in Satellite 6
-- alternatively, we could point the existing puppet infrastructure to
-  Satellite, but that's going to leave us with an unsupported Puppet;
-  - the only reason I can think of to do this, is if you _really_ want to use
-    Puppet 4;
-- there are two extreme options, and various combinations of those two
-  in between:
-  - first of all, we can leave everything as-is in terms of processes, but
-    start using Sat6 Puppet: still use Hiera, and still use r10k to manage data
-    and code, respectively;
-    - reports and facts would still need to go into Satellite 6;
-    - r10k is currently not supported, but we have some docs to make that work;
-    - hiera is undocumented but supported, and we have people using this in
-      GPS;
-  - and second, we can start using Sat6 Puppet, push everything into Satellite,
-    use smart parameters, use config groups etc., to make use of everything
-    Satellite 6 offers in this area
-    - my Mojo doc is probably the basis for this (dedicated Puppet CV)
-    - Smart parameters all the way
-- the hybrid way(s) of pulling Puppet into Sat6 would revolve around using
-  Hiera or r10k together with Satellite 6
-  - I have a mojo doc on r10k that does this mostly
-  - For hiera, we have some bugs to squash (hopefully sat62 will be out during
-    summit)
-  - if you want to keep your existing puppet stuff (because you have puppet 4),
-    we can probably make that work (this is part of what Rich wants and part of
-    what was on Bryan's list), there are some quirks, but there's also some
-    information on the interwebs:
-    https://groups.google.com/forum/#!topic/foreman-users/HOT9RSSmAMU
-    - i have done some research around this already, unsure if we want to
-      include this
+Again there is a script which you can use which is named **switchpuppet_38_to_sat6.sh** and then also a remote execution job template which is called **switchpuppet_38_to_sat6_job_template.erb**.
 
-So imo, the first step we need to take is to figure out what scenarios we want
-to cover. It probably makes sense to cover the extreme Satellite variant (CVs
-and Smart Parameters), it probably makes sense to explain Sat6's Puppet with
-Hiera and r10k. Do we want to cover an 'external' Puppet 4 master and dito
-clients reports and sending facts to Sat6? ENC functionality probably doesn't
-work yet (afaics).
-
-
-Big question: do we present with Satellite 6.2 or Satellite 6.1?
+These should help to automate the process we are going to describe in the Red Hat Summite 2016 presentation.
