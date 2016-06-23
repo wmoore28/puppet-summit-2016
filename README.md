@@ -10,7 +10,7 @@ To test this scenario, we needed to first build a Satellite 3.8 server. The easi
 
 | File            |      purpose                                                                                                |
 |-----------------|:-----------------------------------------------------------------------------------------------------------:|
-| finish.erb      |  Is this just the defaily finish?                                                                           |
+| finish.erb      | Default finish file                                                                                         |
 | kickstart.erb   | Cloned from the default Satellite kickstart added override to inject the puppet.conf file                   |
 | puppet.conf.erb | The puppet.conf file that will be injected when hostname is puppetmaster38 as we set in the kickstart       |
 
