@@ -29,7 +29,7 @@ Note that for Satellite 6, we will install the puppet agent from the satellite t
 
 ## Switching puppet agent on a host to point to Satellite 6.
 
-The final two scripts here are for switching the puppet agent on a host to point to a Satellite 6 server. There are a number of steps that the script will perform which, whilst not exhaustive, seemed appropriate for our migrations:
+The final two scripts here are for switching the puppet agent on a host to point to a Satellite 6 server. There are a number of steps that the script will perform which, whilst not exhaustive for every customer scenario we suspect, seemed appropriate for our migrations:
 
 1. - Backup the existing installation
 2. - Remove the existing installation
