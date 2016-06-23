@@ -31,13 +31,13 @@ Note that for Satellite 6, we will install the puppet agent from the satellite t
 
 The final two scripts here are for switching the puppet agent on a host to point to a Satellite 6 server. There are a number of steps that the script will perform which, whilst not exhaustive, seemed appropriate for our migrations:
 
-1 - Backup the existing installation
-2 - Remove the existing installation
-3 - Disable the Puppet Community repository
-4 - Enable, if required, the Satellite Tools repository
-5 - Install new Puppet software (remove community client, install Red Hat provided client)
-6 - Configure the new Puppet agent software
-7 - Run once to request certificate
+1. - Backup the existing installation
+2. - Remove the existing installation
+3. - Disable the Puppet Community repository
+4. - Enable, if required, the Satellite Tools repository
+5. - Install new Puppet software (remove community client, install Red Hat provided client)
+6. - Configure the new Puppet agent software
+7. - Run once to request certificate
 
 Again there is a script which you can use which is named **switchpuppet_38_to_sat6.sh** and then also a remote execution job template which is called **switchpuppet_38_to_sat6_job_template.erb**.
 
