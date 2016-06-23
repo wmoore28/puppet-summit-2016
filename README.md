@@ -23,7 +23,7 @@ The next steps are to configure the community puppet master server which we have
 
 Note that these two scrips have also been combined into a single Remote Execution Job Template which can be used with the new Satellite 6.2 release. This is the file **setup_puppetmaster38_job_template.erb** 
 
-## Installing puppet agent onto hosts.
+## Installing community puppet agent onto hosts to communicate to community puppet master.
 
 Note that for Satellite 6, we will install the puppet agent from the satellite tools repo as per the Satellite user guide. We also created a simple script **setup_puppet38_agent.sh** and a remote execution job **setup_puppet38_agent_job_template.erb** to automate this for our test environment.
 
@@ -35,8 +35,8 @@ The final two scripts here are for switching the puppet agent on a host to point
 2 - Remove the existing installation
 3 - Disable the Puppet Community repository
 4 - Enable, if required, the Satellite Tools repository
-5 - Install new Puppet software
-6 - Configure the new Puppet software
+5 - Install new Puppet software (remove community client, install Red Hat provided client)
+6 - Configure the new Puppet agent software
 7 - Run once to request certificate
 
 Again there is a script which you can use which is named **switchpuppet_38_to_sat6.sh** and then also a remote execution job template which is called **switchpuppet_38_to_sat6_job_template.erb**.
