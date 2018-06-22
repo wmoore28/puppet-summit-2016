@@ -15,7 +15,7 @@ systemctl start puppetmaster
 
 echo
 echo "Now, on the Satellite server, run:"
-echo "# capsule-certs-generate --capsule-fqdn $(hostname -f) --certs-tar ~/$(hostname -f).tar"
+echo "# capsule-certs-generate --node-fqdn $(hostname -f) --certs-tar ~/$(hostname -f).tar"
 echo
 echo "Afterwards, copy that file over to /root/$(hostname -f).tar and run:"
 echo "# cd $HOME; ./setup_puppetmaster38_step2.sh"
